@@ -1,0 +1,11 @@
+services:
+
+  falcon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/myapp
+    ports:
+      - "8013:8013"
+    command: bundle exec falcon host
