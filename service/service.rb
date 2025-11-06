@@ -1,3 +1,4 @@
+#!/usr/bin/env async-service
 # frozen_string_literal: true
 
 # Released under the MIT License.
@@ -5,19 +6,12 @@
 
 require "socket"
 require "async"
-require 'falcon'
-require 'console'
-require 'console/output/split'
-require 'async/redis'
-
 require "async/service/container_service"
 require "async/service/container_environment"
-# require_relative './environment/client'
-# require_relative './environment/server'
+require_relative '../environment/client'
+require_relative '../environment/server'
 
 # Server service that listens on a Unix domain socket and responds with "Hello World"
-
-load :rack, :supervisor
 class IPCServer < Async::Service::ContainerService
   def run(instance, evaluator)
     socket_path = evaluator.ipc_socket_path
@@ -121,9 +115,4 @@ end
 service "ipc-client" do
   service_class IPCClient
   include IPCEnvironment
-end
-
-service 'localhost' do
-  include Falcon::Environment::Rack
-  endpoint {Async::HTTP::Endpoint.parse('http://0.0.0.0:8013')}
 end

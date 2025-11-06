@@ -1,6 +1,33 @@
+version: '3.5'
 services:
 
+  redis-server:
+    image: redis:5
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100k"
+        max-file: "10"
+    command: >
+      redis-server
+      --requirepass yourpassword
+      --loglevel verbose
+      --logfile ""
+
   falcon:
+    depends_on:
+      - redis-server
+    environment:
+      ENV_REDIS_HOST: redis
+      ENV_REDIS_PORT: 6379
+      ENV_REDIS_DB: 1
+      ENV_REDIS_PASSWORD: yourpassword
+      TZ: Europe/Warsaw
+      ENV_JWT_SECRET: e778af94e8307bf30235952f11eea038425f7daf4d74f6d8c1458bf5f5f96c7f
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,3 +36,8 @@ services:
     ports:
       - "8013:8013"
     command: bundle exec falcon host
+#    command: bundle exec falcon service/service.rb
+
+volumes:
+  pg-data:
+  redis-data:

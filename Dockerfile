@@ -1,4 +1,4 @@
-FROM ruby:3.3
+FROM ruby:3.4.5
 MAINTAINER Mydlarz.Mateusz@gmail.com
 
 RUN apt-get update -qq && apt-get install -y build-essential
