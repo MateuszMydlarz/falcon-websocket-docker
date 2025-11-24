@@ -12,88 +12,15 @@ require 'async/redis'
 
 require "async/service/container_service"
 require "async/service/container_environment"
-# require_relative './environment/client'
-# require_relative './environment/server'
+
+require_relative './environment/client'
+require_relative './environment/server'
+require_relative './environment/redis'
 
 # Server service that listens on a Unix domain socket and responds with "Hello World"
 
+
 load :rack, :supervisor
-class IPCServer < Async::Service::ContainerService
-  def run(instance, evaluator)
-    socket_path = evaluator.ipc_socket_path
-
-    # Clean up any existing socket
-    File.unlink(socket_path) if File.exist?(socket_path)
-
-    # Create Unix domain socket server
-    server = UNIXServer.new(socket_path)
-
-    Console.info(self) {"IPC Server listening on #{socket_path}"}
-    instance.ready!
-
-    begin
-      while true
-        # Accept incoming connections
-        client = server.accept
-        Console.info(self) {"Client connected"}
-
-        # Send greeting
-        client.write("Hello World\n")
-        client.close
-
-        Console.info(self) {"Sent greeting and closed connection"}
-      end
-    rescue => error
-      Console.error(self, error)
-    ensure
-      server&.close
-      File.unlink(socket_path) if File.exist?(socket_path)
-    end
-
-    return server
-  end
-end
-
-# Client service that periodically connects to the server
-class IPCClient < Async::Service::ContainerService
-  def run(instance, evaluator)
-    socket_path = evaluator.ipc_socket_path
-    timeout = evaluator.ipc_connection_timeout
-
-    Console.info(self) {"IPC Client starting - will connect to #{socket_path}"}
-    instance.ready!
-
-    Async do |task|
-      while true
-        begin
-          # Wait a bit before first connection attempt
-          task.sleep(2)
-
-          # Connect to server
-          client = UNIXSocket.new(socket_path)
-          Console.info(self) {"Connected to server"}
-
-          # Read response
-          response = client.readline.chomp
-          puts "Received from server: #{response}"
-
-          client.close
-          Console.info(self) {"Connection closed"}
-
-          # Wait before next connection
-          task.sleep(3)
-
-        rescue Errno::ENOENT
-          Console.warn(self) {"Server socket not found at #{socket_path}, retrying..."}
-          task.sleep(2)
-        rescue => error
-          Console.error(self, error)
-          task.sleep(2)
-        end
-      end
-    end
-  end
-end
 
 module IPCEnvironment
   include Async::Service::ContainerEnvironment
@@ -121,6 +48,12 @@ end
 service "ipc-client" do
   service_class IPCClient
   include IPCEnvironment
+end
+
+service "redis-client" do
+  service_class IPCRedisListener
+  include IPCEnvironment
+  redis_endpoint {Async::Redis::Endpoint.local}
 end
 
 service 'localhost' do
