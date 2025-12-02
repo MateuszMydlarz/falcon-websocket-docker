@@ -45,10 +45,10 @@ service "ipc-server" do
   include IPCEnvironment
 end
 
-service "ipc-client" do
-  service_class IPCClient
-  include IPCEnvironment
-end
+# service "ipc-client" do
+#   service_class IPCClient
+#   include IPCEnvironment
+# end
 
 service "redis-client" do
   service_class IPCRedisListener

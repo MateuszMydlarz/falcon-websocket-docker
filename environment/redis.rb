@@ -6,29 +6,31 @@ require "socket"
 
 # Shared environment for IPC configuration
 class IPCRedisListener < Async::Service::ContainerService
-  def run(instance, evaluator)
-    socket_path = evaluator.ipc_socket_path
-    timeout = evaluator.ipc_connection_timeout
+  def setup(container)
+    super
+    container.run(count: 1, restart: true) do |instance|
+    socket_path = File.expand_path("service.ipc", Dir.pwd)
+    # socket_path = evaluator.ipc_socket_path
+    # timeout = evaluator.ipc_connection_timeout
 
-    Console.info(self) {"IPCRedisListener starting - will connect to #{socket_path}"}
+    # Console.info(self) {"IPCRedisListener starting - will connect to #{socket_path}"}
     instance.ready!
+
+    url = "redis://:yourpassword@redis-server:6379/1"
+    uri = Async::Redis::Endpoint.parse(url)
+    client = Async::Redis::Client.new(uri)
 
     Async do |task|
       while true
         begin
-          # Wait a bit before first connection attempt
-          # task.sleep(2)
-
-          url = "redis://:yourpassword@redis-server:6379/1"
-          uri = Async::Redis::Endpoint.parse(url)
-          client = Async::Redis::Client.new(uri)
-
-          instance.ready!
 
           client.subscribe 'status' do |context|
-            Console.info(self, "Subscribed to Redis channel 'status'.")
             while response = context.listen
-              Console.info(self, "Received event:", response)
+              puts response.inspect
+              Console.info(self, "Received event from Redis:", response)
+              ipc_client = UNIXSocket.new(socket_path)
+              ipc_client.write(response)
+              ipc_client.close
             end
           end
 
@@ -41,5 +43,6 @@ class IPCRedisListener < Async::Service::ContainerService
         end
       end
     end
+  end
   end
 end

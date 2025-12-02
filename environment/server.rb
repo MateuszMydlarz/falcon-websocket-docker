@@ -5,8 +5,11 @@ require "socket"
 
 # Shared environment for IPC configuration
 class IPCServer < Async::Service::ContainerService
-  def run(instance, evaluator)
-    socket_path = evaluator.ipc_socket_path
+  def setup(container)
+    super
+    container.run(count: 1, restart: true) do |instance|
+  # def run(instance, evaluator)
+    socket_path = File.expand_path("service.ipc", Dir.pwd)
 
     # Clean up any existing socket
     File.unlink(socket_path) if File.exist?(socket_path)
@@ -33,12 +36,14 @@ class IPCServer < Async::Service::ContainerService
         # Console.info(self) {"Sent greeting and closed connection"}
       end
     rescue => error
-      Console.error(self, error)
+      Console.info(self) { "ERROR: #{error}"}
+      # Console.error(self, error)
     ensure
       server&.close
       File.unlink(socket_path) if File.exist?(socket_path)
     end
 
     return server
-  end
+    end
+    end
 end

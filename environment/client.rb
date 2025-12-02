@@ -18,23 +18,9 @@ class IPCClient < Async::Service::ContainerService
         begin
           # Wait a bit before first connection attempt
           task.sleep(2)
-
-          # Connect to server
           client = UNIXSocket.new(socket_path)
-          # Console.info(self) {"Connected to server"}
-
           client.write("Hello World\n")
-
-
           client.close
-
-          # Read response
-          # response = client.readline.chomp
-          # puts "Received from server: #{response}"
-
-          # Console.info(self) {"Connection closed"}
-
-          # Wait before next connection
           task.sleep(3)
 
         rescue Errno::ENOENT
